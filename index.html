@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ICARUS TTT - LIVE SYNC</title>
+    <title>ICARUS TTT - DIRECTOR LIVE</title>
     <style>
         :root { --bg: #121212; --card: #1e1e1e; --accent: #3498db; --go: #2ecc71; --danger: #e74c3c; --text: #ffffff; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
-        .main-timer { background: var(--card); padding: 30px; border-radius: 30px; width: 380px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.6); border: 1px solid #333; }
+        .main-timer { background: var(--card); padding: 30px; border-radius: 30px; width: 380px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.6); border: 1px solid #333; position: sticky; top: 10px; z-index: 100; }
         .current-name { font-size: 3rem; font-weight: 900; color: var(--accent); text-transform: uppercase; margin: 0; }
-        .timer-circle { font-size: 6rem; font-weight: 800; border: 10px solid #333; border-top-color: var(--accent); border-radius: 50%; width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; margin: 15px auto; }
+        .timer-circle { font-size: 6rem; font-weight: 800; border: 10px solid #333; border-top-color: var(--accent); border-radius: 50%; width: 160px; height: 160px; display: flex; align-items: center; justify-content: center; margin: 10px auto; }
         .btn-group { display: flex; gap: 8px; justify-content: center; }
         button { padding: 12px 18px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
         .btn-start { background: var(--go); color: white; flex: 1; }
@@ -17,23 +17,28 @@
         .btn-climb { background: #8e44ad; color: white; }
         .btn-climb.active { background: #ff00ff; box-shadow: 0 0 15px #ff00ff; }
         .rider-list { width: 420px; margin-top: 25px; }
-        .rider-row { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 12px 15px; margin-bottom: 8px; border-radius: 12px; border-left: 6px solid #444; }
+        .rider-row { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 10px 15px; margin-bottom: 8px; border-radius: 12px; border-left: 6px solid #444; }
         .rider-row.active { border-left-color: var(--go); background: #252525; transform: scale(1.02); }
+        .rider-controls { display: flex; align-items: center; gap: 5px; }
+        .small-btn { padding: 4px 8px; background: #444; color: white; border-radius: 4px; font-size: 0.7rem; }
+        .drop-btn { color: var(--danger); background: transparent; font-size: 1rem; }
+        .order-btn { background: transparent; color: #666; font-size: 1rem; padding: 0 2px; }
         .connection-status { font-size: 0.7rem; color: #888; margin-top: 10px; }
     </style>
 </head>
 <body>
 
     <div class="main-timer">
-        <div id="current-name" class="current-name">STANDBY</div>
-        <div id="next-up-label" style="color:#888; font-size: 0.9rem; margin-top:5px;"></div>
+        <div id="current-name" class="current-name">READY</div>
+        <div id="next-up-label" style="color:#888; font-size: 0.8rem; margin-top:5px; height: 1rem;"></div>
         <div class="timer-circle" id="display-time">--</div>
         
         <div class="btn-group">
             <button class="btn-start" onclick="masterToggle()" id="start-btn">START LIVE</button>
             <button class="btn-climb" onclick="masterClimb()" id="climb-btn">CLIMB</button>
+            <button onclick="masterReset()" style="background:#444; color:white;">RESET</button>
         </div>
-        <div id="status" class="connection-status">Connecting to Firebase...</div>
+        <div id="status" class="connection-status">Syncing...</div>
     </div>
 
     <div class="rider-list" id="rider-list"></div>
@@ -42,7 +47,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyAlPdzvhWSei60quuv8bOniUiz6-RJtmKE",
             authDomain: "icarus-ttt.firebaseapp.com",
@@ -57,8 +61,8 @@
         const db = getDatabase(app);
         const timerRef = ref(db, 'liveTimer');
 
-        // --- TEAM SETUP ---
-        let riders = [
+        // Initial Local State (Will be overwritten by Firebase)
+        window.riders = [
             { name: "George", pull: 40 },
             { name: "Jamie", pull: 40 },
             { name: "Fuzzy", pull: 30 },
@@ -67,19 +71,18 @@
             { name: "Espley", pull: 20 }
         ];
         const PHONETIC_NAMES = { "Fuzzy": "Fuzzy", "Espley": "Es-plea" };
-
         window.index = 0;
-        window.timeLeft = riders[0].pull;
+        window.timeLeft = 40;
         window.isRunning = false;
         window.isClimb = false;
         let interval;
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // --- FIREBASE SYNC LOGIC ---
-
+        // --- THE MASTER SYNC ---
         onValue(timerRef, (snapshot) => {
             const data = snapshot.val();
             if (data) {
+                window.riders = data.riders || window.riders;
                 window.index = data.index;
                 window.timeLeft = data.timeLeft;
                 window.isRunning = data.isRunning;
@@ -94,11 +97,15 @@
                     clearInterval(interval);
                     interval = null;
                 }
+            } else {
+                // If DB is empty, push initial setup
+                pushUpdate();
             }
         });
 
         window.pushUpdate = () => {
             set(timerRef, {
+                riders: window.riders,
                 index: window.index,
                 timeLeft: window.timeLeft,
                 isRunning: window.isRunning,
@@ -106,15 +113,52 @@
             });
         };
 
-        // --- TIMER FUNCTIONS ---
+        // --- DIRECTOR ACTIONS ---
+        window.adjustTime = (idx, amt) => {
+            window.riders[idx].pull = Math.max(5, window.riders[idx].pull + amt);
+            if (idx === window.index) window.timeLeft = Math.max(1, window.timeLeft + amt);
+            pushUpdate();
+        };
 
+        window.dropRider = (idx) => {
+            if (!confirm(`Drop ${window.riders[idx].name}?`)) return;
+            if (idx === window.index) {
+                window.index = (window.index + 1) % window.riders.length;
+                window.riders.splice(idx, 1);
+                window.index = window.index % window.riders.length;
+                window.timeLeft = getAdjustedPull(window.riders[window.index]);
+            } else {
+                window.riders.splice(idx, 1);
+                if (idx < window.index) window.index--;
+            }
+            pushUpdate();
+        };
+
+        window.moveRider = (idx, dir) => {
+            let newIdx = idx + dir;
+            if (newIdx < 0 || newIdx >= window.riders.length) return;
+            [window.riders[idx], window.riders[newIdx]] = [window.riders[newIdx], window.riders[idx]];
+            if (idx === window.index) window.index = newIdx;
+            else if (newIdx === window.index) window.index = idx;
+            pushUpdate();
+        };
+
+        window.masterReset = () => {
+            window.index = 0;
+            window.timeLeft = getAdjustedPull(window.riders[0]);
+            window.isRunning = false;
+            pushUpdate();
+        };
+
+        // --- TIMER CORE ---
         function tick() {
             if (window.timeLeft > 0) window.timeLeft--;
             checkAlerts();
             if (window.timeLeft <= 0) {
-                window.index = (window.index + 1) % riders.length;
-                window.timeLeft = getAdjustedPull(riders[window.index]);
-                speak(`Go ${getSpeakName(riders[window.index].name)}. ${window.timeLeft} seconds.`);
+                window.index = (window.index + 1) % window.riders.length;
+                let pTime = getAdjustedPull(window.riders[window.index]);
+                window.timeLeft = pTime;
+                speak(`Go ${getSpeakName(window.riders[window.index].name)}. ${pTime} seconds.`);
                 pushUpdate();
             }
             syncVisuals();
@@ -133,21 +177,37 @@
         };
 
         function syncVisuals() {
+            const currentRider = window.riders[window.index];
             document.getElementById('display-time').innerText = window.timeLeft;
-            document.getElementById('current-name').innerText = riders[window.index].name;
+            document.getElementById('current-name').innerText = currentRider ? currentRider.name : "DONE";
             document.getElementById('start-btn').innerText = window.isRunning ? "STOP LIVE" : "START LIVE";
             document.getElementById('start-btn').className = window.isRunning ? "btn-start running" : "btn-start";
             document.getElementById('climb-btn').classList.toggle('active', window.isClimb);
             
-            let next3 = [];
-            for(let i=1; i<=3; i++) next3.push(riders[(window.index + i) % riders.length].name);
-            document.getElementById('next-up-label').innerText = `Next: ${next3.join(', ')}`;
+            // Next up label
+            let nextText = "";
+            if (window.riders.length > 1) {
+                let n1 = window.riders[(window.index + 1) % window.riders.length].name;
+                let n2 = window.riders[(window.index + 2) % window.riders.length].name;
+                nextText = `Next: ${n1}, ${n2}`;
+            }
+            document.getElementById('next-up-label').innerText = nextText;
 
             let html = "";
-            riders.forEach((r, i) => {
+            window.riders.forEach((r, i) => {
                 const pTime = getAdjustedPull(r);
                 html += `<div class="rider-row ${i === window.index ? 'active' : ''}">
-                    <span>${r.name}</span><span>${pTime}s</span>
+                    <div style="display:flex; align-items:center;">
+                        <button class="order-btn" onclick="moveRider(${i}, -1)">▲</button>
+                        <button class="order-btn" onclick="moveRider(${i}, 1)">▼</button>
+                        <span style="margin-left:8px;">${r.name}</span>
+                    </div>
+                    <div class="rider-controls">
+                        <button class="small-btn" onclick="adjustTime(${i}, -5)">-5</button>
+                        <span style="min-width:25px; text-align:center; font-size:0.8rem;">${pTime}s</span>
+                        <button class="small-btn" onclick="adjustTime(${i}, 5)">+5</button>
+                        <button class="drop-btn" onclick="dropRider(${i})">🗑</button>
+                    </div>
                 </div>`;
             });
             document.getElementById('rider-list').innerHTML = html;
@@ -155,33 +215,17 @@
 
         function getAdjustedPull(r) { return window.isClimb ? Math.round(r.pull * 0.5) : r.pull; }
         function getSpeakName(name) { return PHONETIC_NAMES[name] || name; }
-        
-        function speak(text) {
-            window.speechSynthesis.cancel();
-            const msg = new SpeechSynthesisUtterance(text);
-            msg.rate = 1.1;
-            window.speechSynthesis.speak(msg);
-        }
-
+        function speak(text) { window.speechSynthesis.cancel(); const msg = new SpeechSynthesisUtterance(text); msg.rate = 1.1; window.speechSynthesis.speak(msg); }
         function checkAlerts() {
-            if (window.timeLeft === 10) {
-                let n1 = riders[(window.index + 1) % riders.length].name;
-                speak(`In 10 seconds: ${n1}`);
-            }
+            if (window.timeLeft === 10) speak(`In 10 seconds: ${window.riders[(window.index + 1) % window.riders.length].name}`);
             if (window.timeLeft <= 4 && window.timeLeft > 0) beep(800, 0.1);
         }
-
         function beep(freq, duration) {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.frequency.value = freq;
-            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + duration);
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.frequency.value = freq; gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + duration);
         }
-
         syncVisuals();
     </script>
 </body>
