@@ -3,51 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ICARUS TTT - DS PRO CONTROL</title>
+    <title>ICARUS TTT - PRO CONTROL</title>
     <style>
         :root { --bg: #121212; --card: #1e1e1e; --accent: #3498db; --go: #2ecc71; --danger: #e74c3c; --warning: #f39c12; --text: #ffffff; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; padding: 10px; margin: 0; }
-        .main-timer { background: var(--card); padding: 15px 25px; border-radius: 25px; width: 360px; text-align: center; box-shadow: 0 15px 30px rgba(0,0,0,0.6); border: 1px solid #333; position: sticky; top: 5px; z-index: 100; }
+        
+        .main-timer { 
+            background: var(--card); padding: 15px 25px; border-radius: 25px; width: 360px; 
+            text-align: center; box-shadow: 0 15px 30px rgba(0,0,0,0.6); border: 1px solid #333; 
+            position: sticky; top: 5px; z-index: 100; 
+        }
+        
+        .gear-btn {
+            position: absolute; top: 15px; right: 20px; font-size: 1.5rem; 
+            background: none; border: none; color: #444; cursor: pointer; padding: 0;
+        }
+        .gear-btn:hover { color: var(--accent); }
+
         .current-name { font-size: 2.2rem; font-weight: 900; color: var(--accent); text-transform: uppercase; margin: 0; }
         .timer-circle { font-size: 4rem; font-weight: 800; border-radius: 50%; width: 130px; height: 130px; display: flex; align-items: center; justify-content: center; margin: 10px auto; background: var(--card); position: relative; border: 8px solid #333; z-index: 1; }
         .timer-circle::before { content: ""; position: absolute; top: -8px; left: -8px; right: -8px; bottom: -8px; border-radius: 50%; background: conic-gradient(var(--circle-color, #3498db) var(--progress, 0%), transparent 0); z-index: -1; }
         .next-up-text { color: #888; font-size: 0.8rem; margin-bottom: 8px; font-weight: 600; }
-        .btn-group { display: flex; gap: 8px; justify-content: center; }
+        
+        .btn-group { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; }
         button { padding: 10px 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
         .btn-start { background: var(--go); color: white; flex: 2; }
         .btn-start.running { background: var(--warning); }
-        .btn-reset { background: #444; color: white; flex: 1; }
-        .audio-toggle-wrap { margin-top: 10px; font-size: 0.75rem; color: #888; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        
+        #setup-menu { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 200; flex-direction: column; align-items: center; padding: 20px; overflow-y: auto; }
+        .setup-card { background: var(--card); padding: 20px; border-radius: 20px; width: 100%; max-width: 400px; }
+        .setup-row { display: flex; gap: 5px; margin-bottom: 10px; }
+        .setup-row input { background: #333; border: 1px solid #444; color: white; padding: 8px; border-radius: 5px; }
+        .setup-row input[type="text"] { flex: 3; }
+        .setup-row input[type="number"] { flex: 1; }
+
         .rider-list { width: 100%; max-width: 440px; margin-top: 15px; }
         .rider-row { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 8px 12px; margin-bottom: 6px; border-radius: 10px; border-left: 5px solid #444; }
         .rider-row.active { border-left-color: var(--go); background: #252525; transform: scale(1.01); }
-        .rider-row.will-skip { opacity: 0.4; }
+        .rider-row.will-skip { opacity: 0.3; }
         .rider-controls { display: flex; align-items: center; gap: 4px; }
         .small-btn { padding: 4px 6px; background: #444; color: white; border-radius: 4px; font-size: 0.65rem; }
         .skip-text-btn { background: transparent; color: var(--warning); font-size: 0.65rem; padding: 4px 6px; border: 1px solid var(--warning); border-radius: 4px; }
         .skip-text-btn.active-skip { text-decoration: line-through; color: #555; border-color: #333; }
         .drop-btn { color: var(--danger); background: transparent; font-size: 0.65rem; font-weight: bold; }
-        .order-btn { background: transparent; color: #555; font-size: 0.9rem; padding: 0 2px; }
+        
+        .order-btn { background: transparent; color: #666; font-size: 1.1rem; padding: 0 4px; line-height: 1; }
+        .order-btn:hover { color: var(--accent); }
+
         .bottom-controls { margin-top: 30px; width: 100%; max-width: 440px; padding: 20px; text-align: center; border-top: 1px solid #333; }
         .vol-container { display: flex; align-items: center; gap: 10px; justify-content: center; }
-        .vol-label { font-size: 0.7rem; color: #666; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
+    <div id="setup-menu">
+        <div class="setup-card">
+            <h2 style="color: var(--accent); margin-top: 0;">Setup Team</h2>
+            <div id="setup-rows-container"></div>
+            <button onclick="addRiderField()" style="background: #444; color: white; width: 100%; margin-top: 10px;">+ Add Rider</button>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="saveTeamSetup()" style="background: var(--go); color: white; flex: 1;">Save & Sync</button>
+                <button onclick="toggleSetup(false)" style="background: var(--danger); color: white;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <div class="main-timer">
+        <button class="gear-btn" onclick="toggleSetup(true)">⚙️</button>
         <div id="current-name" class="current-name">READY</div>
         <div id="next-up-label" class="next-up-text"></div>
-        <div class="timer-circle" id="timer-display">
-            <span id="display-time">--</span>
-        </div>
+        <div class="timer-circle" id="timer-display"><span id="display-time">--</span></div>
         
         <div class="btn-group">
             <button class="btn-start" onclick="masterToggle()" id="start-btn">START</button>
-            <button class="btn-reset" onclick="masterReset()">RESET</button>
+            <button onclick="masterReset()" style="background:#444; color:white; flex: 1;">RESET</button>
         </div>
 
-        <div class="audio-toggle-wrap">
+        <div style="font-size: 0.75rem; color: #888; display: flex; align-items: center; justify-content: center; gap: 5px;">
             <input type="checkbox" id="audioEnable" onchange="unlockAudio()">
             <label for="audioEnable">Enable Voice & Tones</label>
         </div>
@@ -57,7 +89,7 @@
 
     <div class="bottom-controls">
         <div class="vol-container">
-            <span class="vol-label">Volume</span>
+            <span style="font-size: 0.7rem; color: #666;">VOLUME</span>
             <input type="range" id="volControl" min="0" max="1" step="0.1" value="0.7">
         </div>
     </div>
@@ -80,22 +112,51 @@
         const db = getDatabase(app);
         const timerRef = ref(db, 'liveTimer');
 
-        window.riders = [
-            { name: "George", pull: 40, skipNext: false }, { name: "Jamie", pull: 40, skipNext: false },
-            { name: "Fuzzy", pull: 30, skipNext: false }, { name: "Jeff", pull: 30, skipNext: false },
-            { name: "David", pull: 20, skipNext: false }, { name: "Espley", pull: 20, skipNext: false }
-        ];
+        window.riders = [];
         const PHONETIC_NAMES = { "Fuzzy": "Fuzzy", "Espley": "Es-plea" };
         window.index = 0; window.timeLeft = 40; window.isRunning = false;
         let interval; let audioCtx;
 
-        window.unlockAudio = () => {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            if(document.getElementById('audioEnable').checked) {
-                speak("Voice system active.");
-                beep(440, 0.4);
-            }
+        window.toggleSetup = (show) => {
+            const menu = document.getElementById('setup-menu');
+            menu.style.display = show ? 'flex' : 'none';
+            if (show) renderSetupRows();
+        };
+
+        function renderSetupRows() {
+            const container = document.getElementById('setup-rows-container');
+            container.innerHTML = window.riders.map((r, i) => `
+                <div class="setup-row">
+                    <input type="text" value="${r.name}" id="edit-name-${i}">
+                    <input type="number" value="${r.pull}" id="edit-pull-${i}">
+                    <button onclick="removeRiderField(${i})" style="background:none; color:red; padding:0 5px;">✕</button>
+                </div>
+            `).join('');
+        }
+
+        window.addRiderField = () => {
+            window.riders.push({ name: "New Rider", pull: 30, skipNext: false });
+            renderSetupRows();
+        };
+
+        window.removeRiderField = (idx) => {
+            window.riders.splice(idx, 1);
+            renderSetupRows();
+        };
+
+        window.saveTeamSetup = () => {
+            const newRiders = window.riders.map((r, i) => ({
+                name: document.getElementById(`edit-name-${i}`).value,
+                pull: parseInt(document.getElementById(`edit-pull-${i}`).value),
+                skipNext: false
+            }));
+            window.riders = newRiders;
+            window.index = 0;
+            window.timeLeft = window.riders[0].pull;
+            window.isRunning = false;
+            pushUpdate();
+            toggleSetup(false);
+            speak("Team updated.");
         };
 
         onValue(timerRef, (snapshot) => {
@@ -104,18 +165,27 @@
                 if (window.isRunning !== data.isRunning && data.isRunning !== undefined) {
                     speak(data.isRunning ? "Timer started." : "Timer paused.");
                 }
-                window.riders = data.riders || window.riders;
-                window.index = data.index;
-                window.timeLeft = data.timeLeft;
-                window.isRunning = data.isRunning;
+                window.riders = data.riders || [];
+                window.index = data.index || 0;
+                window.timeLeft = data.timeLeft || 0;
+                window.isRunning = data.isRunning || false;
                 syncVisuals();
                 if (window.isRunning && !interval) interval = setInterval(tick, 1000);
                 else if (!window.isRunning) { clearInterval(interval); interval = null; }
-            } else { pushUpdate(); }
+            } else { 
+                window.riders = [{ name: "George", pull: 40, skipNext: false }, { name: "Jamie", pull: 40, skipNext: false }];
+                pushUpdate(); 
+            }
         });
 
         window.pushUpdate = () => {
             set(timerRef, { riders: window.riders, index: window.index, timeLeft: window.timeLeft, isRunning: window.isRunning });
+        };
+
+        window.unlockAudio = () => {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            if(document.getElementById('audioEnable').checked) { speak("Audio ready."); beep(440, 0.4); }
         };
 
         window.toggleSkip = (idx) => {
@@ -178,17 +248,11 @@
         function tick() {
             if (window.timeLeft > 0) window.timeLeft--;
             checkAlerts();
-            if (window.timeLeft <= 0) {
-                findNextRider();
-                pushUpdate();
-            }
+            if (window.timeLeft <= 0) { findNextRider(); pushUpdate(); }
             syncVisuals();
         }
 
-        window.masterToggle = () => { 
-            unlockAudio(); window.isRunning = !window.isRunning; pushUpdate(); 
-            speak(window.isRunning ? "Timer started." : "Timer paused.");
-        };
+        window.masterToggle = () => { unlockAudio(); window.isRunning = !window.isRunning; pushUpdate(); };
 
         function syncVisuals() {
             const currentRider = window.riders[window.index];
@@ -215,38 +279,37 @@
             window.riders.forEach((r, i) => {
                 const isSkipping = r.skipNext;
                 html += `<div class="rider-row ${i === window.index ? 'active' : ''} ${isSkipping ? 'will-skip' : ''}">
-                    <div style="display:flex; align-items:center;"><button class="order-btn" onclick="moveRider(${i}, -1)">▲</button><button class="order-btn" onclick="moveRider(${i}, 1)">▼</button><span style="margin-left:8px; font-weight:bold;">${r.name}</span></div>
-                    <div class="rider-controls"><button class="skip-text-btn ${isSkipping ? 'active-skip' : ''}" onclick="toggleSkip(${i})">SKIP</button><button class="small-btn" onclick="adjustTime(${i}, -5)">-5</button><span style="min-width:22px; text-align:center; font-size:0.7rem; color:#888;">${r.pull}s</span><button class="small-btn" onclick="adjustTime(${i}, 5)">+5</button><button class="drop-btn" onclick="dropRider(${i})">DROP</button></div>
+                    <div style="display:flex; align-items:center;">
+                        <button class="order-btn" onclick="moveRider(${i}, -1)">▲</button>
+                        <button class="order-btn" onclick="moveRider(${i}, 1)">▼</button>
+                        <span style="margin-left:8px; font-weight:bold;">${r.name}</span>
+                    </div>
+                    <div class="rider-controls">
+                        <button class="skip-text-btn ${isSkipping ? 'active-skip' : ''}" onclick="toggleSkip(${i})">SKIP</button>
+                        <button class="small-btn" onclick="adjustTime(${i}, -5)">-5</button>
+                        <span style="min-width:22px; text-align:center; font-size:0.7rem; color:#888;">${r.pull}s</span>
+                        <button class="small-btn" onclick="adjustTime(${i}, 5)">+5</button>
+                        <button class="drop-btn" onclick="dropRider(${i})">DROP</button>
+                    </div>
                 </div>`;
             });
             document.getElementById('rider-list').innerHTML = html;
         }
 
         function getSpeakName(name) { return PHONETIC_NAMES[name] || name; }
-        
         function speak(text) {
             if(!window.speechSynthesis || !document.getElementById('audioEnable').checked) return;
             window.speechSynthesis.cancel();
             const msg = new SpeechSynthesisUtterance(text);
             const userVol = document.getElementById('volControl').value;
             const voices = window.speechSynthesis.getVoices();
-            
-            const targetVoice = 
-                voices.find(v => v.name.includes("Google UK English Female")) || 
-                voices.find(v => v.name.includes("Sonia")) || 
-                voices.find(v => v.name.includes("Samantha")) ||
-                voices.find(v => v.name.toLowerCase().includes("female")) ||
-                voices[0];
-
+            const targetVoice = voices.find(v => v.name.includes("Google UK English Female") || v.name.includes("Sonia") || v.name.includes("Female"));
             if (targetVoice) msg.voice = targetVoice;
-            msg.pitch = 1.0;
-            msg.rate = 1.0;
-            msg.volume = userVol;
+            msg.pitch = 1.05; msg.rate = 1.0; msg.volume = userVol;
             window.speechSynthesis.speak(msg);
         }
 
         function checkAlerts() {
-            // --- 10s PREVIEW ---
             if (window.timeLeft === 12) {
                 let nextNames = []; let checkIdx = window.index;
                 for(let i=1; i<window.riders.length; i++) {
@@ -256,26 +319,23 @@
                 }
                 speak(`In 10 seconds: ${nextNames.join(', ')}`);
             }
-            // --- 5s PRE-READY ---
-            if (window.timeLeft === 5) {
-                beep(440, 0.4);
-            }
-            // --- 2s LAUNCH PHASE ---
+            if (window.timeLeft === 5) beep(440, 0.4);
+            
+            // --- UPDATED GO COMMAND ---
             if (window.timeLeft === 2) {
                 doubleBeep(440, 0.2);
-                // Call "Go [Next Rider]" here
                 let nextIdx = 0;
                 for(let i=1; i<=window.riders.length; i++) {
                     let r = window.riders[(window.index + i) % window.riders.length];
-                    if(!r.skipNext) {
-                        nextIdx = (window.index + i) % window.riders.length;
-                        break;
+                    if(!r.skipNext) { 
+                        nextIdx = (window.index + i) % window.riders.length; 
+                        break; 
                     }
                 }
-                speak(`Go ${getSpeakName(window.riders[nextIdx].name)}.`);
+                // She now includes the duration: "Go [Name]. [X] seconds."
+                speak(`Go ${getSpeakName(window.riders[nextIdx].name)}. ${window.riders[nextIdx].pull} seconds.`);
             }
         }
-        
         function beep(freq, duration) {
             if(!audioCtx || !document.getElementById('audioEnable').checked) return;
             const userVol = document.getElementById('volControl').value;
