@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ICARUS TTT - PRO CONTROL</title>
+    <title>ICARUS TTT - CONVEYOR CONTROL</title>
     <style>
         :root { --bg: #121212; --card: #1e1e1e; --accent: #3498db; --go: #2ecc71; --danger: #e74c3c; --warning: #f39c12; --text: #ffffff; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; padding: 10px; margin: 0; }
@@ -14,10 +14,7 @@
             position: sticky; top: 5px; z-index: 100; 
         }
         
-        .gear-btn {
-            position: absolute; top: 15px; right: 20px; font-size: 1.5rem; 
-            background: none; border: none; color: #444; cursor: pointer; padding: 0;
-        }
+        .gear-btn { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; background: none; border: none; color: #444; cursor: pointer; }
         .gear-btn:hover { color: var(--accent); }
 
         .current-name { font-size: 2.2rem; font-weight: 900; color: var(--accent); text-transform: uppercase; margin: 0; }
@@ -34,21 +31,20 @@
         .setup-card { background: var(--card); padding: 20px; border-radius: 20px; width: 100%; max-width: 400px; }
         .setup-row { display: flex; gap: 5px; margin-bottom: 10px; }
         .setup-row input { background: #333; border: 1px solid #444; color: white; padding: 8px; border-radius: 5px; }
-        .setup-row input[type="text"] { flex: 3; }
-        .setup-row input[type="number"] { flex: 1; }
-
+        
         .rider-list { width: 100%; max-width: 440px; margin-top: 15px; }
-        .rider-row { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 8px 12px; margin-bottom: 6px; border-radius: 10px; border-left: 5px solid #444; }
-        .rider-row.active { border-left-color: var(--go); background: #252525; transform: scale(1.01); }
+        .rider-row { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 8px 12px; margin-bottom: 6px; border-radius: 10px; border-left: 5px solid #444; transition: all 0.3s ease; }
+        
+        /* The Top Rider is always active in the Conveyor system */
+        .rider-row:first-child { border-left-color: var(--go); background: #252525; transform: scale(1.02); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        
         .rider-row.will-skip { opacity: 0.3; }
         .rider-controls { display: flex; align-items: center; gap: 4px; }
         .small-btn { padding: 4px 6px; background: #444; color: white; border-radius: 4px; font-size: 0.65rem; }
         .skip-text-btn { background: transparent; color: var(--warning); font-size: 0.65rem; padding: 4px 6px; border: 1px solid var(--warning); border-radius: 4px; }
         .skip-text-btn.active-skip { text-decoration: line-through; color: #555; border-color: #333; }
         .drop-btn { color: var(--danger); background: transparent; font-size: 0.65rem; font-weight: bold; }
-        
         .order-btn { background: transparent; color: #666; font-size: 1.1rem; padding: 0 4px; line-height: 1; }
-        .order-btn:hover { color: var(--accent); }
 
         .bottom-controls { margin-top: 30px; width: 100%; max-width: 440px; padding: 20px; text-align: center; border-top: 1px solid #333; }
         .vol-container { display: flex; align-items: center; gap: 10px; justify-content: center; }
@@ -114,7 +110,7 @@
 
         window.riders = [];
         const PHONETIC_NAMES = { "Fuzzy": "Fuzzy", "Espley": "Es-plea" };
-        window.index = 0; window.timeLeft = 40; window.isRunning = false;
+        window.timeLeft = 40; window.isRunning = false;
         let interval; let audioCtx;
 
         window.toggleSetup = (show) => {
@@ -151,12 +147,11 @@
                 skipNext: false
             }));
             window.riders = newRiders;
-            window.index = 0;
             window.timeLeft = window.riders[0].pull;
             window.isRunning = false;
             pushUpdate();
             toggleSetup(false);
-            speak("Team updated.");
+            speak("Team conveyor synchronized.");
         };
 
         onValue(timerRef, (snapshot) => {
@@ -166,7 +161,6 @@
                     speak(data.isRunning ? "Timer started." : "Timer paused.");
                 }
                 window.riders = data.riders || [];
-                window.index = data.index || 0;
                 window.timeLeft = data.timeLeft || 0;
                 window.isRunning = data.isRunning || false;
                 syncVisuals();
@@ -179,7 +173,7 @@
         });
 
         window.pushUpdate = () => {
-            set(timerRef, { riders: window.riders, index: window.index, timeLeft: window.timeLeft, isRunning: window.isRunning });
+            set(timerRef, { riders: window.riders, index: 0, timeLeft: window.timeLeft, isRunning: window.isRunning });
         };
 
         window.unlockAudio = () => {
@@ -188,11 +182,13 @@
             if(document.getElementById('audioEnable').checked) { speak("Audio ready."); beep(440, 0.4); }
         };
 
+        // --- CONVEYOR SKIP LOGIC ---
         window.toggleSkip = (idx) => {
-            if (idx === window.index) {
-                let skippedName = window.riders[window.index].name;
-                findNextRider();
-                speak(`Skipping ${skippedName}. Go ${getSpeakName(window.riders[window.index].name)}.`);
+            if (idx === 0) {
+                // If they are on the front, rotate them to bottom immediately
+                let skippedName = window.riders[0].name;
+                rotateConveyor();
+                speak(`Skipping ${skippedName}. Go ${getSpeakName(window.riders[0].name)}.`);
             } else {
                 window.riders[idx].skipNext = !window.riders[idx].skipNext;
                 speak(window.riders[idx].skipNext ? `${window.riders[idx].name} skipping` : `${window.riders[idx].name} in`);
@@ -200,34 +196,33 @@
             pushUpdate();
         };
 
-        function findNextRider() {
-            let startIdx = window.index;
-            for (let i = 1; i <= window.riders.length; i++) {
-                let next = (startIdx + i) % window.riders.length;
-                if (!window.riders[next].skipNext || i === window.riders.length) {
-                    window.index = next; window.riders[startIdx].skipNext = false; 
-                    window.timeLeft = window.riders[window.index].pull;
-                    break;
-                }
+        function rotateConveyor() {
+            // Move top rider to the end of the list
+            let finishedRider = window.riders.shift();
+            finishedRider.skipNext = false; // Reset skip status for next lap
+            window.riders.push(finishedRider);
+
+            // Check if the NEW top rider needs to be skipped
+            if (window.riders[0].skipNext) {
+                rotateConveyor(); // Recurse if the next person is also skipping
+            } else {
+                window.timeLeft = window.riders[0].pull;
             }
         }
 
         window.adjustTime = (idx, amt) => {
             window.riders[idx].pull = Math.max(5, window.riders[idx].pull + amt);
-            if (idx === window.index) window.timeLeft = Math.max(1, window.timeLeft + amt);
+            if (idx === 0) window.timeLeft = Math.max(1, window.timeLeft + amt);
             pushUpdate();
         };
 
         window.dropRider = (idx) => {
             if (!confirm(`Drop ${window.riders[idx].name}?`)) return;
-            if (idx === window.index) {
-                window.index = (window.index + 1) % window.riders.length;
-                window.riders.splice(idx, 1);
-                window.index = window.index % window.riders.length;
-                window.timeLeft = window.riders[window.index].pull;
+            if (idx === 0) {
+                window.riders.shift();
+                window.timeLeft = window.riders[0].pull;
             } else {
                 window.riders.splice(idx, 1);
-                if (idx < window.index) window.index--;
             }
             pushUpdate();
         };
@@ -236,31 +231,31 @@
             let newIdx = idx + dir;
             if (newIdx < 0 || newIdx >= window.riders.length) return;
             [window.riders[idx], window.riders[newIdx]] = [window.riders[newIdx], window.riders[idx]];
-            if (idx === window.index) window.index = newIdx; else if (newIdx === window.index) window.index = idx;
             pushUpdate();
         };
 
         window.masterReset = () => {
-            window.index = 0; window.riders.forEach(r => r.skipNext = false);
+            window.riders.forEach(r => r.skipNext = false);
             window.timeLeft = window.riders[0].pull; window.isRunning = false; pushUpdate();
         };
 
         function tick() {
             if (window.timeLeft > 0) window.timeLeft--;
             checkAlerts();
-            if (window.timeLeft <= 0) { findNextRider(); pushUpdate(); }
+            if (window.timeLeft <= 0) { rotateConveyor(); pushUpdate(); }
             syncVisuals();
         }
 
         window.masterToggle = () => { unlockAudio(); window.isRunning = !window.isRunning; pushUpdate(); };
 
         function syncVisuals() {
-            const currentRider = window.riders[window.index];
+            const currentRider = window.riders[0];
             const totalPullTime = currentRider ? currentRider.pull : 40;
             document.getElementById('display-time').innerText = window.timeLeft;
             document.getElementById('current-name').innerText = currentRider ? currentRider.name : "DONE";
             document.getElementById('start-btn').innerText = window.isRunning ? "PAUSE" : "START";
             document.getElementById('start-btn').className = window.isRunning ? "btn-start running" : "btn-start";
+            
             const progressPercent = (window.timeLeft / totalPullTime) * 100;
             const circle = document.getElementById('timer-display');
             let colorCode = '#3498db';
@@ -268,17 +263,19 @@
             else if (window.timeLeft <= 12) colorCode = '#f39c12';
             circle.style.setProperty('--progress', `${progressPercent}%`);
             circle.style.setProperty('--circle-color', colorCode);
-            let nextRiders = []; let checkIdx = window.index;
+
+            // Predict the "Next" labels based on skips
+            let nextRiders = [];
             for(let i=1; i<window.riders.length; i++) {
-                let r = window.riders[(checkIdx + i) % window.riders.length];
-                if (!r.skipNext) nextRiders.push(r.name);
+                if (!window.riders[i].skipNext) nextRiders.push(window.riders[i].name);
                 if (nextRiders.length >= 2) break;
             }
             document.getElementById('next-up-label').innerText = nextRiders.length > 0 ? `Next: ${nextRiders.join(', ')}` : "";
+            
             let html = "";
             window.riders.forEach((r, i) => {
                 const isSkipping = r.skipNext;
-                html += `<div class="rider-row ${i === window.index ? 'active' : ''} ${isSkipping ? 'will-skip' : ''}">
+                html += `<div class="rider-row ${isSkipping ? 'will-skip' : ''}">
                     <div style="display:flex; align-items:center;">
                         <button class="order-btn" onclick="moveRider(${i}, -1)">▲</button>
                         <button class="order-btn" onclick="moveRider(${i}, 1)">▼</button>
@@ -311,28 +308,20 @@
 
         function checkAlerts() {
             if (window.timeLeft === 12) {
-                let nextNames = []; let checkIdx = window.index;
+                let nextNames = [];
                 for(let i=1; i<window.riders.length; i++) {
-                    let r = window.riders[(checkIdx + i) % window.riders.length];
-                    if (!r.skipNext) nextNames.push(getSpeakName(r.name));
+                    if (!window.riders[i].skipNext) nextNames.push(getSpeakName(window.riders[i].name));
                     if (nextNames.length >= 3) break;
                 }
                 speak(`In 10 seconds: ${nextNames.join(', ')}`);
             }
             if (window.timeLeft === 5) beep(440, 0.4);
-            
-            // --- UPDATED GO COMMAND ---
             if (window.timeLeft === 2) {
                 doubleBeep(440, 0.2);
                 let nextIdx = 0;
-                for(let i=1; i<=window.riders.length; i++) {
-                    let r = window.riders[(window.index + i) % window.riders.length];
-                    if(!r.skipNext) { 
-                        nextIdx = (window.index + i) % window.riders.length; 
-                        break; 
-                    }
+                for(let i=1; i<window.riders.length; i++) {
+                    if(!window.riders[i].skipNext) { nextIdx = i; break; }
                 }
-                // She now includes the duration: "Go [Name]. [X] seconds."
                 speak(`Go ${getSpeakName(window.riders[nextIdx].name)}. ${window.riders[nextIdx].pull} seconds.`);
             }
         }
