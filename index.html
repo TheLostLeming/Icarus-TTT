@@ -3,55 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WTRL TTT - Team Timer Pro</title>
+    <title>ICARUS TTT - LIVE SYNC</title>
     <style>
         :root { --bg: #121212; --card: #1e1e1e; --accent: #3498db; --go: #2ecc71; --danger: #e74c3c; --text: #ffffff; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
-        .main-timer { background: var(--card); padding: 30px; border-radius: 30px; width: 380px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.6); border: 1px solid #333; margin-top: 10px; }
+        .main-timer { background: var(--card); padding: 30px; border-radius: 30px; width: 380px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.6); border: 1px solid #333; }
         .current-name { font-size: 3rem; font-weight: 900; color: var(--accent); text-transform: uppercase; margin: 0; }
         .timer-circle { font-size: 6rem; font-weight: 800; border: 10px solid #333; border-top-color: var(--accent); border-radius: 50%; width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; margin: 15px auto; }
-        .btn-group { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-        button { padding: 12px 18px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s; }
+        .btn-group { display: flex; gap: 8px; justify-content: center; }
+        button { padding: 12px 18px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
         .btn-start { background: var(--go); color: white; flex: 1; }
         .btn-start.running { background: var(--danger); }
         .btn-climb { background: #8e44ad; color: white; }
         .btn-climb.active { background: #ff00ff; box-shadow: 0 0 15px #ff00ff; }
         .rider-list { width: 420px; margin-top: 25px; }
-        .rider-row { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 12px 15px; margin-bottom: 8px; border-radius: 12px; border-left: 6px solid #444; transition: 0.2s; }
+        .rider-row { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 12px 15px; margin-bottom: 8px; border-radius: 12px; border-left: 6px solid #444; }
         .rider-row.active { border-left-color: var(--go); background: #252525; transform: scale(1.02); }
-        .rider-controls { display: flex; align-items: center; gap: 8px; }
-        .time-adjust { display: flex; align-items: center; gap: 4px; background: #2a2a2a; border-radius: 6px; padding: 2px 5px; }
-        .small-btn { padding: 4px 8px; background: #444; color: white; border-radius: 4px; font-size: 0.8rem; }
-        .order-btn { background: transparent; color: #888; font-size: 1.1rem; padding: 0 5px; }
-        .drop-btn { color: var(--danger); background: transparent; font-size: 1.1rem; }
-        .sync-panel { background: #222; padding: 15px; border-radius: 15px; margin-bottom: 15px; width: 350px; text-align:center; font-size: 0.8rem; }
+        .connection-status { font-size: 0.7rem; color: #888; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <div class="sync-panel">
-        <label>AUTO-SYNC START TIME:</label>
-        <input type="time" id="start-time" value="19:00" style="background:#333; color:white; border:1px solid #555; padding:5px; border-radius:5px;">
-        <button onclick="activateAutoSync()" style="background:var(--accent); color:white; padding:5px 10px; font-size:0.7rem; margin-top:5px;">ACTIVATE SYNC</button>
-    </div>
-
     <div class="main-timer">
-        <div id="current-name" class="current-name">READY</div>
+        <div id="current-name" class="current-name">STANDBY</div>
         <div id="next-up-label" style="color:#888; font-size: 0.9rem; margin-top:5px;"></div>
         <div class="timer-circle" id="display-time">--</div>
         
         <div class="btn-group">
-            <button class="btn-start" onclick="toggleManualTimer()" id="start-btn">START</button>
-            <button class="btn-climb" onclick="toggleClimb()" id="climb-btn">CLIMB</button>
-            <button onclick="resetRotation()" style="background:#444; color:white;">RESET</button>
+            <button class="btn-start" onclick="masterToggle()" id="start-btn">START LIVE</button>
+            <button class="btn-climb" onclick="masterClimb()" id="climb-btn">CLIMB</button>
         </div>
+        <div id="status" class="connection-status">Connecting to Firebase...</div>
     </div>
 
     <div class="rider-list" id="rider-list"></div>
 
-    <script>
-        // --- DATA SETUP ---
-        let defaultRiders = [
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // ==========================================
+        <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyAlPdzvhWSei60quuv8bOniUiz6-RJtmKE",
+    authDomain: "icarus-ttt.firebaseapp.com",
+    projectId: "icarus-ttt",
+    storageBucket: "icarus-ttt.firebasestorage.app",
+    messagingSenderId: "315198331779",
+    appId: "1:315198331779:web:29ac0ba526ba7c8498f4b6"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+</script>
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+            projectId: "YOUR_PROJECT",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "...",
+            appId: "..."
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const timerRef = ref(db, 'liveTimer');
+
+        // --- TEAM SETUP ---
+        let riders = [
             { name: "George", pull: 40 },
             { name: "Jamie", pull: 40 },
             { name: "Fuzzy", pull: 30 },
@@ -59,162 +86,111 @@
             { name: "David", pull: 20 },
             { name: "Espley", pull: 20 }
         ];
-
-        let riders = JSON.parse(localStorage.getItem('ttt-team')) || defaultRiders;
         const PHONETIC_NAMES = { "Fuzzy": "Fuzzy", "Espley": "Es-plea" };
 
-        let index = 0;
-        let timeLeft = riders[0].pull;
-        let isClimb = false;
-        let isRunning = false;
-        let isAutoMode = false;
+        window.index = 0;
+        window.timeLeft = riders[0].pull;
+        window.isRunning = false;
+        window.isClimb = false;
         let interval;
-
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        function saveTeam() { localStorage.setItem('ttt-team', JSON.stringify(riders)); }
+        // --- FIREBASE SYNC LOGIC ---
 
-        function updateUI() {
-            document.getElementById('display-time').innerText = timeLeft;
-            document.getElementById('current-name').innerText = riders[index] ? riders[index].name : "---";
-            let next3 = [];
-            if(riders.length > 1) {
-                for(let i=1; i<=Math.min(3, riders.length-1); i++) {
-                    next3.push(riders[(index + i) % riders.length].name);
+        // Listening for changes from the Master
+        onValue(timerRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                window.index = data.index;
+                window.timeLeft = data.timeLeft;
+                window.isRunning = data.isRunning;
+                window.isClimb = data.isClimb;
+                
+                document.getElementById('status').innerText = "LIVE SYNC ACTIVE";
+                syncVisuals();
+                
+                if (window.isRunning && !interval) {
+                    interval = setInterval(tick, 1000);
+                } else if (!window.isRunning) {
+                    clearInterval(interval);
+                    interval = null;
                 }
             }
-            document.getElementById('next-up-label').innerText = next3.length ? `Next: ${next3.join(', ')}` : "";
+        });
 
+        // Sending changes to everyone
+        window.pushUpdate = () => {
+            set(timerRef, {
+                index: window.index,
+                timeLeft: window.timeLeft,
+                isRunning: window.isRunning,
+                isClimb: window.isClimb
+            });
+        };
+
+        // --- TIMER FUNCTIONS ---
+
+        function tick() {
+            if (window.timeLeft > 0) window.timeLeft--;
+            checkAlerts();
+            if (window.timeLeft <= 0) {
+                // Only the person who clicks 'start' handles the logic to avoid multi-device conflict
+                // For simplicity, we just sync everyone to the master's calculation
+                window.index = (window.index + 1) % riders.length;
+                window.timeLeft = getAdjustedPull(riders[window.index]);
+                speak(`Go ${getSpeakName(riders[window.index].name)}. ${window.timeLeft} seconds.`);
+                pushUpdate();
+            }
+            syncVisuals();
+        }
+
+        window.masterToggle = () => {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            window.isRunning = !window.isRunning;
+            pushUpdate();
+        };
+
+        window.masterClimb = () => {
+            window.isClimb = !window.isClimb;
+            speak(window.isClimb ? "Climb mode" : "Standard");
+            pushUpdate();
+        };
+
+        function syncVisuals() {
+            document.getElementById('display-time').innerText = window.timeLeft;
+            document.getElementById('current-name').innerText = riders[window.index].name;
+            document.getElementById('start-btn').innerText = window.isRunning ? "STOP LIVE" : "START LIVE";
+            document.getElementById('start-btn').className = window.isRunning ? "btn-start running" : "btn-start";
+            document.getElementById('climb-btn').classList.toggle('active', window.isClimb);
+            
             let html = "";
             riders.forEach((r, i) => {
-                const actualPull = getAdjustedPull(r);
-                html += `
-                <div class="rider-row ${i === index ? 'active' : ''}">
-                    <div style="display:flex; align-items:center;">
-                        <button class="order-btn" onclick="moveRider(${i}, -1)">▲</button>
-                        <button class="order-btn" onclick="moveRider(${i}, 1)">▼</button>
-                        <span style="margin-left:10px;">${r.name}</span>
-                    </div>
-                    <div class="rider-controls">
-                        <div class="time-adjust">
-                            <button class="small-btn" onclick="adjustTime(${i}, -5)">-</button>
-                            <span style="min-width:25px; text-align:center;">${actualPull}s</span>
-                            <button class="small-btn" onclick="adjustTime(${i}, 5)">+</button>
-                        </div>
-                        <button class="drop-btn" onclick="dropRider(${i})">🗑</button>
-                    </div>
+                const pTime = getAdjustedPull(r);
+                html += `<div class="rider-row ${i === window.index ? 'active' : ''}">
+                    <span>${r.name}</span><span>${pTime}s</span>
                 </div>`;
             });
             document.getElementById('rider-list').innerHTML = html;
         }
 
-        function getAdjustedPull(rider) {
-            return isClimb ? Math.round(rider.pull * 0.5) : rider.pull;
-        }
-
-        function adjustTime(idx, amount) {
-            riders[idx].pull = Math.max(5, riders[idx].pull + amount);
-            if (idx === index && !isAutoMode) timeLeft = Math.max(1, timeLeft + amount);
-            saveTeam(); updateUI();
-        }
-
-        function dropRider(idx) {
-            if (!confirm(`Drop ${riders[idx].name}?`)) return;
-            if (idx === index) { transitionRider(); riders.splice(idx, 1); index = index % riders.length; } 
-            else { riders.splice(idx, 1); if (idx < index) index--; }
-            saveTeam(); updateUI();
-        }
-
-        function moveRider(idx, direction) {
-            let newIdx = idx + direction;
-            if (newIdx < 0 || newIdx >= riders.length) return;
-            [riders[idx], riders[newIdx]] = [riders[newIdx], riders[idx]];
-            if (idx === index) index = newIdx; else if (newIdx === index) index = idx;
-            saveTeam(); updateUI();
-        }
-
-        function resetRotation() { index = 0; timeLeft = getAdjustedPull(riders[0]); updateUI(); }
-
-        function toggleManualTimer() {
-            isAutoMode = false; isRunning = !isRunning;
-            document.getElementById('start-btn').innerText = isRunning ? "PAUSE" : "RESUME";
-            document.getElementById('start-btn').className = isRunning ? "btn-start running" : "btn-start";
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            if (isRunning) interval = setInterval(manualTick, 1000); else clearInterval(interval);
-        }
-
-        function manualTick() {
-            if (timeLeft > 0) timeLeft--;
-            checkAlerts();
-            if (timeLeft <= 0) transitionRider();
-            updateUI();
-        }
-
-        function activateAutoSync() {
-            isAutoMode = true; isRunning = true;
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            interval = setInterval(autoTick, 1000);
-            speak("Auto Sync active");
-        }
-
-        function autoTick() {
-            const now = new Date();
-            const [h, m] = document.getElementById('start-time').value.split(':');
-            const start = new Date(); start.setHours(h, m, 0, 0);
-            let diff = Math.floor((now - start) / 1000);
-            if (diff < 0) { timeLeft = Math.abs(diff); updateUI(); return; }
-
-            const rotLen = riders.reduce((acc, r) => acc + getAdjustedPull(r), 0);
-            let timeInRot = diff % rotLen;
-            let cum = 0;
-            for (let i = 0; i < riders.length; i++) {
-                let pTime = getAdjustedPull(riders[i]);
-                if (timeInRot < cum + pTime) {
-                    if (index !== i) { 
-                        index = i; 
-                        speak(`Go ${getSpeakName(riders[index].name)}. ${pTime} seconds.`); 
-                    }
-                    timeLeft = (cum + pTime) - timeInRot;
-                    checkAlerts();
-                    break;
-                }
-                cum += pTime;
-            }
-            updateUI();
-        }
-
-        function checkAlerts() {
-            if (timeLeft === 10) {
-                let n1 = getSpeakName(riders[(index + 1) % riders.length].name);
-                let n2 = getSpeakName(riders[(index + 2) % riders.length].name);
-                let n3 = getSpeakName(riders[(index + 3) % riders.length].name);
-                speak(`In 10 seconds: ${n1}, ${n2}, ${n3}`);
-            }
-            if (timeLeft <= 4 && timeLeft > 0) beep(800, 0.1);
-            if (timeLeft === 1) setTimeout(() => beep(1200, 0.4), 1000);
-        }
-
-        function transitionRider() {
-            index = (index + 1) % riders.length;
-            let pTime = getAdjustedPull(riders[index]);
-            timeLeft = pTime;
-            speak(`Go ${getSpeakName(riders[index].name)}. ${pTime} seconds.`);
-        }
-
-        function toggleClimb() {
-            isClimb = !isClimb;
-            document.getElementById('climb-btn').classList.toggle('active');
-            speak(isClimb ? "Climb mode" : "Standard");
-            updateUI();
-        }
-
+        function getAdjustedPull(r) { return window.isClimb ? Math.round(r.pull * 0.5) : r.pull; }
         function getSpeakName(name) { return PHONETIC_NAMES[name] || name; }
+        
         function speak(text) {
             window.speechSynthesis.cancel();
             const msg = new SpeechSynthesisUtterance(text);
-            msg.rate = 1.1; 
+            msg.rate = 1.1;
             window.speechSynthesis.speak(msg);
         }
+
+        function checkAlerts() {
+            if (window.timeLeft === 10) {
+                let n1 = riders[(window.index + 1) % riders.length].name;
+                speak(`In 10 seconds: ${n1}`);
+            }
+            if (window.timeLeft <= 4 && window.timeLeft > 0) beep(800, 0.1);
+        }
+
         function beep(freq, duration) {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
@@ -225,7 +201,6 @@
             osc.start();
             osc.stop(audioCtx.currentTime + duration);
         }
-        updateUI();
     </script>
 </body>
 </html>
