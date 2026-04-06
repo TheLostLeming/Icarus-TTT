@@ -61,7 +61,6 @@
         const db = getDatabase(app);
         const timerRef = ref(db, 'liveTimer');
 
-        // Initial Local State (Will be overwritten by Firebase)
         window.riders = [
             { name: "George", pull: 40 },
             { name: "Jamie", pull: 40 },
@@ -78,7 +77,6 @@
         let interval;
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // --- THE MASTER SYNC ---
         onValue(timerRef, (snapshot) => {
             const data = snapshot.val();
             if (data) {
@@ -87,20 +85,15 @@
                 window.timeLeft = data.timeLeft;
                 window.isRunning = data.isRunning;
                 window.isClimb = data.isClimb;
-                
                 document.getElementById('status').innerText = "LIVE SYNC ACTIVE";
                 syncVisuals();
-                
                 if (window.isRunning && !interval) {
                     interval = setInterval(tick, 1000);
                 } else if (!window.isRunning) {
                     clearInterval(interval);
                     interval = null;
                 }
-            } else {
-                // If DB is empty, push initial setup
-                pushUpdate();
-            }
+            } else { pushUpdate(); }
         });
 
         window.pushUpdate = () => {
@@ -113,7 +106,6 @@
             });
         };
 
-        // --- DIRECTOR ACTIONS ---
         window.adjustTime = (idx, amt) => {
             window.riders[idx].pull = Math.max(5, window.riders[idx].pull + amt);
             if (idx === window.index) window.timeLeft = Math.max(1, window.timeLeft + amt);
@@ -150,7 +142,6 @@
             pushUpdate();
         };
 
-        // --- TIMER CORE ---
         function tick() {
             if (window.timeLeft > 0) window.timeLeft--;
             checkAlerts();
@@ -184,7 +175,6 @@
             document.getElementById('start-btn').className = window.isRunning ? "btn-start running" : "btn-start";
             document.getElementById('climb-btn').classList.toggle('active', window.isClimb);
             
-            // Next up label
             let nextText = "";
             if (window.riders.length > 1) {
                 let n1 = window.riders[(window.index + 1) % window.riders.length].name;
@@ -216,10 +206,19 @@
         function getAdjustedPull(r) { return window.isClimb ? Math.round(r.pull * 0.5) : r.pull; }
         function getSpeakName(name) { return PHONETIC_NAMES[name] || name; }
         function speak(text) { window.speechSynthesis.cancel(); const msg = new SpeechSynthesisUtterance(text); msg.rate = 1.1; window.speechSynthesis.speak(msg); }
+        
         function checkAlerts() {
-            if (window.timeLeft === 10) speak(`In 10 seconds: ${window.riders[(window.index + 1) % window.riders.length].name}`);
+            if (window.timeLeft === 10) {
+                let count = Math.min(3, window.riders.length - 1);
+                let nextNames = [];
+                for (let i = 1; i <= count; i++) {
+                    nextNames.push(getSpeakName(window.riders[(window.index + i) % window.riders.length].name));
+                }
+                speak(`In 10 seconds: ${nextNames.join(', ')}`);
+            }
             if (window.timeLeft <= 4 && window.timeLeft > 0) beep(800, 0.1);
         }
+
         function beep(freq, duration) {
             const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
             osc.frequency.value = freq; gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
