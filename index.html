@@ -6,45 +6,31 @@
     <title>ICARUS TTT - DS PRO CONTROL</title>
     <style>
         :root { --bg: #121212; --card: #1e1e1e; --accent: #3498db; --go: #2ecc71; --danger: #e74c3c; --warning: #f39c12; --text: #ffffff; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
-        
-        .main-timer { background: var(--card); padding: 30px; border-radius: 30px; width: 380px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.6); border: 1px solid #333; position: sticky; top: 10px; z-index: 100; }
-        .current-name { font-size: 3rem; font-weight: 900; color: var(--accent); text-transform: uppercase; margin: 0; min-height: 4rem; }
-        
-        .timer-circle { 
-            font-size: 6rem; font-weight: 800; border-radius: 50%; width: 200px; height: 200px; 
-            display: flex; align-items: center; justify-content: center; margin: 15px auto; 
-            background: var(--card); position: relative; border: 10px solid #333; z-index: 1;
-        }
-
-        .timer-circle::before {
-            content: ""; position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px;
-            border-radius: 50%; background: conic-gradient(var(--circle-color, #3498db) var(--progress, 0%), transparent 0); z-index: -1;
-        }
-
-        .next-up-text { color: #888; font-size: 0.85rem; margin-top: 5px; height: 1.2rem; font-weight: 600; }
-        .btn-group { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-        button { padding: 12px 18px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: transform 0.1s; }
-        button:active { transform: scale(0.95); }
-        
-        .btn-start { background: var(--go); color: white; flex: 1; }
-        .btn-start.running { background: var(--danger); }
-        .btn-climb { background: #8e44ad; color: white; }
-        .btn-climb.active { background: #ff00ff; box-shadow: 0 0 15px #ff00ff; }
-        .btn-audio { background: #555; color: white; width: 100%; margin-top: 10px; font-size: 0.8rem; }
-        
-        .rider-list { width: 440px; margin-top: 25px; }
-        .rider-row { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 10px 15px; margin-bottom: 8px; border-radius: 12px; border-left: 6px solid #444; }
-        .rider-row.active { border-left-color: var(--go); background: #252525; transform: scale(1.02); }
-        .rider-row.will-skip { border-left-color: var(--warning); opacity: 0.7; }
-        
-        .rider-controls { display: flex; align-items: center; gap: 5px; }
-        .small-btn { padding: 4px 8px; background: #444; color: white; border-radius: 4px; font-size: 0.7rem; }
-        .skip-pill { background: var(--warning); color: black; font-size: 0.6rem; padding: 2px 5px; border-radius: 4px; margin-left: 5px; }
-        .drop-btn { color: var(--danger); background: transparent; font-size: 1.2rem; }
-        .inline-skip-btn { background: transparent; color: var(--warning); font-size: 1.2rem; padding: 0 5px; }
-        .order-btn { background: transparent; color: #666; font-size: 1rem; padding: 0 2px; }
-        .connection-status { font-size: 0.7rem; color: #888; margin-top: 15px; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; padding: 10px; margin: 0; }
+        .main-timer { background: var(--card); padding: 15px 25px; border-radius: 25px; width: 360px; text-align: center; box-shadow: 0 15px 30px rgba(0,0,0,0.6); border: 1px solid #333; position: sticky; top: 5px; z-index: 100; }
+        .current-name { font-size: 2.2rem; font-weight: 900; color: var(--accent); text-transform: uppercase; margin: 0; }
+        .timer-circle { font-size: 4rem; font-weight: 800; border-radius: 50%; width: 130px; height: 130px; display: flex; align-items: center; justify-content: center; margin: 10px auto; background: var(--card); position: relative; border: 8px solid #333; z-index: 1; }
+        .timer-circle::before { content: ""; position: absolute; top: -8px; left: -8px; right: -8px; bottom: -8px; border-radius: 50%; background: conic-gradient(var(--circle-color, #3498db) var(--progress, 0%), transparent 0); z-index: -1; }
+        .next-up-text { color: #888; font-size: 0.8rem; margin-bottom: 8px; font-weight: 600; }
+        .btn-group { display: flex; gap: 8px; justify-content: center; }
+        button { padding: 10px 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        .btn-start { background: var(--go); color: white; flex: 2; }
+        .btn-start.running { background: var(--warning); }
+        .btn-reset { background: #444; color: white; flex: 1; }
+        .audio-toggle-wrap { margin-top: 10px; font-size: 0.75rem; color: #888; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .rider-list { width: 100%; max-width: 440px; margin-top: 15px; }
+        .rider-row { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 8px 12px; margin-bottom: 6px; border-radius: 10px; border-left: 5px solid #444; }
+        .rider-row.active { border-left-color: var(--go); background: #252525; transform: scale(1.01); }
+        .rider-row.will-skip { opacity: 0.4; }
+        .rider-controls { display: flex; align-items: center; gap: 4px; }
+        .small-btn { padding: 4px 6px; background: #444; color: white; border-radius: 4px; font-size: 0.65rem; }
+        .skip-text-btn { background: transparent; color: var(--warning); font-size: 0.65rem; padding: 4px 6px; border: 1px solid var(--warning); border-radius: 4px; }
+        .skip-text-btn.active-skip { text-decoration: line-through; color: #555; border-color: #333; }
+        .drop-btn { color: var(--danger); background: transparent; font-size: 0.65rem; font-weight: bold; }
+        .order-btn { background: transparent; color: #555; font-size: 0.9rem; padding: 0 2px; }
+        .bottom-controls { margin-top: 30px; width: 100%; max-width: 440px; padding: 20px; text-align: center; border-top: 1px solid #333; }
+        .vol-container { display: flex; align-items: center; gap: 10px; justify-content: center; }
+        .vol-label { font-size: 0.7rem; color: #666; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -58,14 +44,23 @@
         
         <div class="btn-group">
             <button class="btn-start" onclick="masterToggle()" id="start-btn">START</button>
-            <button class="btn-climb" onclick="masterClimb()" id="climb-btn">CLIMB</button>
-            <button onclick="masterReset()" style="background:#444; color:white;">RESET</button>
-            <button class="btn-audio" onclick="unlockAudio()">TAP TO UNMUTE / TEST AUDIO</button>
+            <button class="btn-reset" onclick="masterReset()">RESET</button>
         </div>
-        <div id="status" class="connection-status">Syncing...</div>
+
+        <div class="audio-toggle-wrap">
+            <input type="checkbox" id="audioEnable" onchange="unlockAudio()">
+            <label for="audioEnable">Enable Voice & Tones</label>
+        </div>
     </div>
 
     <div class="rider-list" id="rider-list"></div>
+
+    <div class="bottom-controls">
+        <div class="vol-container">
+            <span class="vol-label">Volume</span>
+            <input type="range" id="volControl" min="0" max="1" step="0.1" value="0.7">
+        </div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -91,75 +86,57 @@
             { name: "David", pull: 20, skipNext: false }, { name: "Espley", pull: 20, skipNext: false }
         ];
         const PHONETIC_NAMES = { "Fuzzy": "Fuzzy", "Espley": "Es-plea" };
-        window.index = 0;
-        window.timeLeft = 40;
-        window.isRunning = false;
-        window.isClimb = false;
-        let interval;
-        let audioCtx;
+        window.index = 0; window.timeLeft = 40; window.isRunning = false;
+        let interval; let audioCtx;
 
         window.unlockAudio = () => {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            speak("System Ready");
-            beep(440, 0.2);
-            document.querySelector('.btn-audio').innerText = "AUDIO UNLOCKED";
-            document.querySelector('.btn-audio').style.background = "#2ecc71";
+            if(document.getElementById('audioEnable').checked) {
+                speak("Voice system active.");
+                beep(440, 0.4);
+            }
         };
 
         onValue(timerRef, (snapshot) => {
             const data = snapshot.val();
             if (data) {
+                if (window.isRunning !== data.isRunning && data.isRunning !== undefined) {
+                    speak(data.isRunning ? "Timer started." : "Timer paused.");
+                }
                 window.riders = data.riders || window.riders;
                 window.index = data.index;
                 window.timeLeft = data.timeLeft;
                 window.isRunning = data.isRunning;
-                window.isClimb = data.isClimb;
-                document.getElementById('status').innerText = "LIVE SYNC ACTIVE";
                 syncVisuals();
-                if (window.isRunning && !interval) {
-                    interval = setInterval(tick, 1000);
-                } else if (!window.isRunning) {
-                    clearInterval(interval);
-                    interval = null;
-                }
+                if (window.isRunning && !interval) interval = setInterval(tick, 1000);
+                else if (!window.isRunning) { clearInterval(interval); interval = null; }
             } else { pushUpdate(); }
         });
 
         window.pushUpdate = () => {
-            set(timerRef, {
-                riders: window.riders, index: window.index,
-                timeLeft: window.timeLeft, isRunning: window.isRunning, isClimb: window.isClimb
-            });
+            set(timerRef, { riders: window.riders, index: window.index, timeLeft: window.timeLeft, isRunning: window.isRunning });
         };
 
-        // --- ENHANCED SKIP LOGIC ---
         window.toggleSkip = (idx) => {
             if (idx === window.index) {
-                // If they are on the front, skip them immediately
                 let skippedName = window.riders[window.index].name;
                 findNextRider();
                 speak(`Skipping ${skippedName}. Go ${getSpeakName(window.riders[window.index].name)}.`);
             } else {
-                // If they are in the queue, just mark them for skipping
                 window.riders[idx].skipNext = !window.riders[idx].skipNext;
-                speak(window.riders[idx].skipNext ? `${window.riders[idx].name} skipping` : `${window.riders[idx].name} back in`);
+                speak(window.riders[idx].skipNext ? `${window.riders[idx].name} skipping` : `${window.riders[idx].name} in`);
             }
             pushUpdate();
         };
 
         function findNextRider() {
             let startIdx = window.index;
-            let found = false;
-            // Loop through riders to find the next one NOT marked for skipping
             for (let i = 1; i <= window.riders.length; i++) {
                 let next = (startIdx + i) % window.riders.length;
                 if (!window.riders[next].skipNext || i === window.riders.length) {
-                    window.index = next;
-                    // Reset the skipping status once they've been skipped
-                    window.riders[startIdx].skipNext = false; 
-                    window.timeLeft = getAdjustedPull(window.riders[window.index]);
-                    found = true;
+                    window.index = next; window.riders[startIdx].skipNext = false; 
+                    window.timeLeft = window.riders[window.index].pull;
                     break;
                 }
             }
@@ -177,7 +154,7 @@
                 window.index = (window.index + 1) % window.riders.length;
                 window.riders.splice(idx, 1);
                 window.index = window.index % window.riders.length;
-                window.timeLeft = getAdjustedPull(window.riders[window.index]);
+                window.timeLeft = window.riders[window.index].pull;
             } else {
                 window.riders.splice(idx, 1);
                 if (idx < window.index) window.index--;
@@ -189,17 +166,13 @@
             let newIdx = idx + dir;
             if (newIdx < 0 || newIdx >= window.riders.length) return;
             [window.riders[idx], window.riders[newIdx]] = [window.riders[newIdx], window.riders[idx]];
-            if (idx === window.index) window.index = newIdx;
-            else if (newIdx === window.index) window.index = idx;
+            if (idx === window.index) window.index = newIdx; else if (newIdx === window.index) window.index = idx;
             pushUpdate();
         };
 
         window.masterReset = () => {
-            window.index = 0;
-            window.riders.forEach(r => r.skipNext = false);
-            window.timeLeft = getAdjustedPull(window.riders[0]);
-            window.isRunning = false;
-            pushUpdate();
+            window.index = 0; window.riders.forEach(r => r.skipNext = false);
+            window.timeLeft = window.riders[0].pull; window.isRunning = false; pushUpdate();
         };
 
         function tick() {
@@ -213,81 +186,78 @@
             syncVisuals();
         }
 
-        window.masterToggle = () => {
-            unlockAudio();
-            window.isRunning = !window.isRunning;
-            pushUpdate();
-        };
-
-        window.masterClimb = () => {
-            window.isClimb = !window.isClimb;
-            speak(window.isClimb ? "Climb mode" : "Standard");
-            pushUpdate();
+        window.masterToggle = () => { 
+            unlockAudio(); window.isRunning = !window.isRunning; pushUpdate(); 
+            speak(window.isRunning ? "Timer started." : "Timer paused.");
         };
 
         function syncVisuals() {
             const currentRider = window.riders[window.index];
-            const totalPullTime = getAdjustedPull(currentRider);
+            const totalPullTime = currentRider ? currentRider.pull : 40;
             document.getElementById('display-time').innerText = window.timeLeft;
             document.getElementById('current-name').innerText = currentRider ? currentRider.name : "DONE";
-            document.getElementById('start-btn').innerText = window.isRunning ? "STOP" : "START";
+            document.getElementById('start-btn').innerText = window.isRunning ? "PAUSE" : "START";
             document.getElementById('start-btn').className = window.isRunning ? "btn-start running" : "btn-start";
-            document.getElementById('climb-btn').classList.toggle('active', window.isClimb);
-            
             const progressPercent = (window.timeLeft / totalPullTime) * 100;
             const circle = document.getElementById('timer-display');
             let colorCode = '#3498db';
-            if (window.timeLeft <= 4) colorCode = '#e74c3c';
-            else if (window.timeLeft <= 10) colorCode = '#f39c12';
+            if (window.timeLeft <= 2) colorCode = '#e74c3c';
+            else if (window.timeLeft <= 12) colorCode = '#f39c12';
             circle.style.setProperty('--progress', `${progressPercent}%`);
             circle.style.setProperty('--circle-color', colorCode);
-
-            // Update Next List (Accounting for Skips)
-            let nextRiders = [];
-            let checkIdx = window.index;
+            let nextRiders = []; let checkIdx = window.index;
             for(let i=1; i<window.riders.length; i++) {
                 let r = window.riders[(checkIdx + i) % window.riders.length];
                 if (!r.skipNext) nextRiders.push(r.name);
                 if (nextRiders.length >= 2) break;
             }
             document.getElementById('next-up-label').innerText = nextRiders.length > 0 ? `Next: ${nextRiders.join(', ')}` : "";
-
             let html = "";
             window.riders.forEach((r, i) => {
-                const pTime = getAdjustedPull(r);
                 const isSkipping = r.skipNext;
                 html += `<div class="rider-row ${i === window.index ? 'active' : ''} ${isSkipping ? 'will-skip' : ''}">
-                    <div style="display:flex; align-items:center;">
-                        <button class="order-btn" onclick="moveRider(${i}, -1)">▲</button>
-                        <button class="order-btn" onclick="moveRider(${i}, 1)">▼</button>
-                        <span style="margin-left:8px;">${r.name} ${isSkipping ? '<span class="skip-pill">SKIPPING</span>' : ''}</span>
-                    </div>
-                    <div class="rider-controls">
-                        <button class="inline-skip-btn" onclick="toggleSkip(${i})" title="Skip this turn">⏭️</button>
-                        <button class="small-btn" onclick="adjustTime(${i}, -5)">-5</button>
-                        <span style="min-width:25px; text-align:center; font-size:0.8rem;">${pTime}s</span>
-                        <button class="small-btn" onclick="adjustTime(${i}, 5)">+5</button>
-                        <button class="drop-btn" onclick="dropRider(${i})">🗑</button>
-                    </div>
+                    <div style="display:flex; align-items:center;"><button class="order-btn" onclick="moveRider(${i}, -1)">▲</button><button class="order-btn" onclick="moveRider(${i}, 1)">▼</button><span style="margin-left:8px; font-weight:bold;">${r.name}</span></div>
+                    <div class="rider-controls"><button class="skip-text-btn ${isSkipping ? 'active-skip' : ''}" onclick="toggleSkip(${i})">SKIP</button><button class="small-btn" onclick="adjustTime(${i}, -5)">-5</button><span style="min-width:22px; text-align:center; font-size:0.7rem; color:#888;">${r.pull}s</span><button class="small-btn" onclick="adjustTime(${i}, 5)">+5</button><button class="drop-btn" onclick="dropRider(${i})">DROP</button></div>
                 </div>`;
             });
             document.getElementById('rider-list').innerHTML = html;
         }
 
-        function getAdjustedPull(r) { if(!r) return 40; return window.isClimb ? Math.round(r.pull * 0.5) : r.pull; }
         function getSpeakName(name) { return PHONETIC_NAMES[name] || name; }
-        function speak(text) { 
-            if(window.speechSynthesis) {
-                window.speechSynthesis.cancel(); 
-                const msg = new SpeechSynthesisUtterance(text); 
-                msg.rate = 1.1; 
-                window.speechSynthesis.speak(msg); 
-            }
+        
+        // --- IMPROVED VOICE LOGIC ---
+        function speak(text) {
+            if(!window.speechSynthesis || !document.getElementById('audioEnable').checked) return;
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(text);
+            const userVol = document.getElementById('volControl').value;
+            const voices = window.speechSynthesis.getVoices();
+            
+            // Priority list for a "human" female voice
+            const targetVoice = 
+                voices.find(v => v.name.includes("Google UK English Female")) || 
+                voices.find(v => v.name.includes("Sonia")) || 
+                voices.find(v => v.name.includes("Natural") && v.name.includes("Female")) ||
+                voices.find(v => v.name.includes("Samantha")) ||
+                voices.find(v => v.name.toLowerCase().includes("female")) ||
+                voices[0];
+
+            if (targetVoice) msg.voice = targetVoice;
+            msg.pitch = 1.0;
+            msg.rate = 1.0; // Restored to normal speed
+            msg.volume = userVol;
+            window.speechSynthesis.speak(msg);
         }
+
+        // Pre-load voices immediately
+        window.speechSynthesis.getVoices();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+        }
+
         function checkAlerts() {
-            if (window.timeLeft === 10) {
-                let nextNames = [];
-                let checkIdx = window.index;
+            if (window.timeLeft === 12) {
+                let nextNames = []; let checkIdx = window.index;
                 for(let i=1; i<window.riders.length; i++) {
                     let r = window.riders[(checkIdx + i) % window.riders.length];
                     if (!r.skipNext) nextNames.push(getSpeakName(r.name));
@@ -295,15 +265,19 @@
                 }
                 speak(`In 10 seconds: ${nextNames.join(', ')}`);
             }
-            if (window.timeLeft <= 4 && window.timeLeft > 0) beep(800, 0.1);
+            if (window.timeLeft === 5) beep(440, 0.4);
+            if (window.timeLeft === 2) doubleBeep(440, 0.2);
         }
+        
         function beep(freq, duration) {
-            if(!audioCtx) return;
+            if(!audioCtx || !document.getElementById('audioEnable').checked) return;
+            const userVol = document.getElementById('volControl').value;
             const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-            osc.frequency.value = freq; gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            osc.frequency.value = freq; gain.gain.setValueAtTime(userVol * 0.15, audioCtx.currentTime);
             osc.connect(gain); gain.connect(audioCtx.destination);
             osc.start(); osc.stop(audioCtx.currentTime + duration);
         }
+        function doubleBeep(freq, duration) { beep(freq, duration); setTimeout(() => beep(freq, duration), 250); }
         syncVisuals();
     </script>
 </body>
