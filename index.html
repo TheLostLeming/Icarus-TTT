@@ -40,37 +40,17 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // ==========================================
-        <script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyAlPdzvhWSei60quuv8bOniUiz6-RJtmKE",
-    authDomain: "icarus-ttt.firebaseapp.com",
-    projectId: "icarus-ttt",
-    storageBucket: "icarus-ttt.firebasestorage.app",
-    messagingSenderId: "315198331779",
-    appId: "1:315198331779:web:29ac0ba526ba7c8498f4b6"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-</script>
-        // ==========================================
+        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT.firebaseapp.com",
-            databaseURL: "https://YOUR_PROJECT.firebaseio.com",
-            projectId: "YOUR_PROJECT",
-            storageBucket: "YOUR_PROJECT.appspot.com",
-            messagingSenderId: "...",
-            appId: "..."
+            apiKey: "AIzaSyAlPdzvhWSei60quuv8bOniUiz6-RJtmKE",
+            authDomain: "icarus-ttt.firebaseapp.com",
+            databaseURL: "https://icarus-ttt-default-rtdb.firebaseio.com",
+            projectId: "icarus-ttt",
+            storageBucket: "icarus-ttt.firebasestorage.app",
+            messagingSenderId: "315198331779",
+            appId: "1:315198331779:web:29ac0ba526ba7c8498f4b6"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -97,7 +77,6 @@
 
         // --- FIREBASE SYNC LOGIC ---
 
-        // Listening for changes from the Master
         onValue(timerRef, (snapshot) => {
             const data = snapshot.val();
             if (data) {
@@ -118,7 +97,6 @@
             }
         });
 
-        // Sending changes to everyone
         window.pushUpdate = () => {
             set(timerRef, {
                 index: window.index,
@@ -134,8 +112,6 @@
             if (window.timeLeft > 0) window.timeLeft--;
             checkAlerts();
             if (window.timeLeft <= 0) {
-                // Only the person who clicks 'start' handles the logic to avoid multi-device conflict
-                // For simplicity, we just sync everyone to the master's calculation
                 window.index = (window.index + 1) % riders.length;
                 window.timeLeft = getAdjustedPull(riders[window.index]);
                 speak(`Go ${getSpeakName(riders[window.index].name)}. ${window.timeLeft} seconds.`);
@@ -163,6 +139,10 @@
             document.getElementById('start-btn').className = window.isRunning ? "btn-start running" : "btn-start";
             document.getElementById('climb-btn').classList.toggle('active', window.isClimb);
             
+            let next3 = [];
+            for(let i=1; i<=3; i++) next3.push(riders[(window.index + i) % riders.length].name);
+            document.getElementById('next-up-label').innerText = `Next: ${next3.join(', ')}`;
+
             let html = "";
             riders.forEach((r, i) => {
                 const pTime = getAdjustedPull(r);
@@ -201,6 +181,8 @@
             osc.start();
             osc.stop(audioCtx.currentTime + duration);
         }
+
+        syncVisuals();
     </script>
 </body>
 </html>
