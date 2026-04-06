@@ -3,41 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ICARUS TTT - CONVEYOR CONTROL</title>
+    <title>ICARUS TTT - MASTER RESET</title>
     <style>
         :root { --bg: #121212; --card: #1e1e1e; --accent: #3498db; --go: #2ecc71; --danger: #e74c3c; --warning: #f39c12; --text: #ffffff; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; padding: 10px; margin: 0; }
-        
-        .main-timer { 
-            background: var(--card); padding: 15px 25px; border-radius: 25px; width: 360px; 
-            text-align: center; box-shadow: 0 15px 30px rgba(0,0,0,0.6); border: 1px solid #333; 
-            position: sticky; top: 5px; z-index: 100; 
-        }
-        
+        .main-timer { background: var(--card); padding: 15px 25px; border-radius: 25px; width: 360px; text-align: center; box-shadow: 0 15px 30px rgba(0,0,0,0.6); border: 1px solid #333; position: sticky; top: 5px; z-index: 100; }
         .gear-btn { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; background: none; border: none; color: #444; cursor: pointer; }
-        .gear-btn:hover { color: var(--accent); }
-
         .current-name { font-size: 2.2rem; font-weight: 900; color: var(--accent); text-transform: uppercase; margin: 0; }
         .timer-circle { font-size: 4rem; font-weight: 800; border-radius: 50%; width: 130px; height: 130px; display: flex; align-items: center; justify-content: center; margin: 10px auto; background: var(--card); position: relative; border: 8px solid #333; z-index: 1; }
         .timer-circle::before { content: ""; position: absolute; top: -8px; left: -8px; right: -8px; bottom: -8px; border-radius: 50%; background: conic-gradient(var(--circle-color, #3498db) var(--progress, 0%), transparent 0); z-index: -1; }
         .next-up-text { color: #888; font-size: 0.8rem; margin-bottom: 8px; font-weight: 600; }
-        
         .btn-group { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; }
         button { padding: 10px 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
         .btn-start { background: var(--go); color: white; flex: 2; }
         .btn-start.running { background: var(--warning); }
-        
         #setup-menu { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 200; flex-direction: column; align-items: center; padding: 20px; overflow-y: auto; }
         .setup-card { background: var(--card); padding: 20px; border-radius: 20px; width: 100%; max-width: 400px; }
         .setup-row { display: flex; gap: 5px; margin-bottom: 10px; }
         .setup-row input { background: #333; border: 1px solid #444; color: white; padding: 8px; border-radius: 5px; }
-        
         .rider-list { width: 100%; max-width: 440px; margin-top: 15px; }
-        .rider-row { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 8px 12px; margin-bottom: 6px; border-radius: 10px; border-left: 5px solid #444; transition: all 0.3s ease; }
-        
-        /* The Top Rider is always active in the Conveyor system */
-        .rider-row:first-child { border-left-color: var(--go); background: #252525; transform: scale(1.02); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        
+        .rider-row { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 8px 12px; margin-bottom: 6px; border-radius: 10px; border-left: 5px solid #444; }
+        .rider-row:first-child { border-left-color: var(--go); background: #252525; transform: scale(1.02); }
         .rider-row.will-skip { opacity: 0.3; }
         .rider-controls { display: flex; align-items: center; gap: 4px; }
         .small-btn { padding: 4px 6px; background: #444; color: white; border-radius: 4px; font-size: 0.65rem; }
@@ -45,7 +31,6 @@
         .skip-text-btn.active-skip { text-decoration: line-through; color: #555; border-color: #333; }
         .drop-btn { color: var(--danger); background: transparent; font-size: 0.65rem; font-weight: bold; }
         .order-btn { background: transparent; color: #666; font-size: 1.1rem; padding: 0 4px; line-height: 1; }
-
         .bottom-controls { margin-top: 30px; width: 100%; max-width: 440px; padding: 20px; text-align: center; border-top: 1px solid #333; }
         .vol-container { display: flex; align-items: center; gap: 10px; justify-content: center; }
     </style>
@@ -109,6 +94,7 @@
         const timerRef = ref(db, 'liveTimer');
 
         window.riders = [];
+        window.masterOrder = []; // Background storage for reset
         const PHONETIC_NAMES = { "Fuzzy": "Fuzzy", "Espley": "Es-plea" };
         window.timeLeft = 40; window.isRunning = false;
         let interval; let audioCtx;
@@ -146,12 +132,13 @@
                 pull: parseInt(document.getElementById(`edit-pull-${i}`).value),
                 skipNext: false
             }));
-            window.riders = newRiders;
+            window.riders = JSON.parse(JSON.stringify(newRiders));
+            window.masterOrder = JSON.parse(JSON.stringify(newRiders)); // Set new snapshot
             window.timeLeft = window.riders[0].pull;
             window.isRunning = false;
             pushUpdate();
             toggleSetup(false);
-            speak("Team conveyor synchronized.");
+            speak("Team order locked and synced.");
         };
 
         onValue(timerRef, (snapshot) => {
@@ -161,6 +148,7 @@
                     speak(data.isRunning ? "Timer started." : "Timer paused.");
                 }
                 window.riders = data.riders || [];
+                window.masterOrder = data.masterOrder || window.riders;
                 window.timeLeft = data.timeLeft || 0;
                 window.isRunning = data.isRunning || false;
                 syncVisuals();
@@ -168,12 +156,19 @@
                 else if (!window.isRunning) { clearInterval(interval); interval = null; }
             } else { 
                 window.riders = [{ name: "George", pull: 40, skipNext: false }, { name: "Jamie", pull: 40, skipNext: false }];
+                window.masterOrder = [...window.riders];
                 pushUpdate(); 
             }
         });
 
         window.pushUpdate = () => {
-            set(timerRef, { riders: window.riders, index: 0, timeLeft: window.timeLeft, isRunning: window.isRunning });
+            set(timerRef, { 
+                riders: window.riders, 
+                masterOrder: window.masterOrder, 
+                index: 0, 
+                timeLeft: window.timeLeft, 
+                isRunning: window.isRunning 
+            });
         };
 
         window.unlockAudio = () => {
@@ -182,10 +177,8 @@
             if(document.getElementById('audioEnable').checked) { speak("Audio ready."); beep(440, 0.4); }
         };
 
-        // --- CONVEYOR SKIP LOGIC ---
         window.toggleSkip = (idx) => {
             if (idx === 0) {
-                // If they are on the front, rotate them to bottom immediately
                 let skippedName = window.riders[0].name;
                 rotateConveyor();
                 speak(`Skipping ${skippedName}. Go ${getSpeakName(window.riders[0].name)}.`);
@@ -197,17 +190,11 @@
         };
 
         function rotateConveyor() {
-            // Move top rider to the end of the list
             let finishedRider = window.riders.shift();
-            finishedRider.skipNext = false; // Reset skip status for next lap
+            finishedRider.skipNext = false;
             window.riders.push(finishedRider);
-
-            // Check if the NEW top rider needs to be skipped
-            if (window.riders[0].skipNext) {
-                rotateConveyor(); // Recurse if the next person is also skipping
-            } else {
-                window.timeLeft = window.riders[0].pull;
-            }
+            if (window.riders[0].skipNext) rotateConveyor();
+            else window.timeLeft = window.riders[0].pull;
         }
 
         window.adjustTime = (idx, amt) => {
@@ -218,12 +205,8 @@
 
         window.dropRider = (idx) => {
             if (!confirm(`Drop ${window.riders[idx].name}?`)) return;
-            if (idx === 0) {
-                window.riders.shift();
-                window.timeLeft = window.riders[0].pull;
-            } else {
-                window.riders.splice(idx, 1);
-            }
+            window.riders.splice(idx, 1);
+            if (idx === 0 && window.riders.length > 0) window.timeLeft = window.riders[0].pull;
             pushUpdate();
         };
 
@@ -234,9 +217,15 @@
             pushUpdate();
         };
 
+        // --- NEW MASTER RESET ---
         window.masterReset = () => {
+            // Restore from the Master Snapshot
+            window.riders = JSON.parse(JSON.stringify(window.masterOrder));
             window.riders.forEach(r => r.skipNext = false);
-            window.timeLeft = window.riders[0].pull; window.isRunning = false; pushUpdate();
+            window.timeLeft = window.riders[0].pull;
+            window.isRunning = false;
+            pushUpdate();
+            speak("Rotation reset to start.");
         };
 
         function tick() {
@@ -255,7 +244,6 @@
             document.getElementById('current-name').innerText = currentRider ? currentRider.name : "DONE";
             document.getElementById('start-btn').innerText = window.isRunning ? "PAUSE" : "START";
             document.getElementById('start-btn').className = window.isRunning ? "btn-start running" : "btn-start";
-            
             const progressPercent = (window.timeLeft / totalPullTime) * 100;
             const circle = document.getElementById('timer-display');
             let colorCode = '#3498db';
@@ -263,15 +251,12 @@
             else if (window.timeLeft <= 12) colorCode = '#f39c12';
             circle.style.setProperty('--progress', `${progressPercent}%`);
             circle.style.setProperty('--circle-color', colorCode);
-
-            // Predict the "Next" labels based on skips
             let nextRiders = [];
             for(let i=1; i<window.riders.length; i++) {
                 if (!window.riders[i].skipNext) nextRiders.push(window.riders[i].name);
                 if (nextRiders.length >= 2) break;
             }
             document.getElementById('next-up-label').innerText = nextRiders.length > 0 ? `Next: ${nextRiders.join(', ')}` : "";
-            
             let html = "";
             window.riders.forEach((r, i) => {
                 const isSkipping = r.skipNext;
