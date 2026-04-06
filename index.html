@@ -11,42 +11,25 @@
         .main-timer { background: var(--card); padding: 30px; border-radius: 30px; width: 380px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.6); border: 1px solid #333; position: sticky; top: 10px; z-index: 100; }
         .current-name { font-size: 3rem; font-weight: 900; color: var(--accent); text-transform: uppercase; margin: 0; min-height: 4rem; }
         
-        /* THE PROGRESS CIRCLE */
         .timer-circle { 
-            font-size: 6rem; 
-            font-weight: 800; 
-            border-radius: 50%; 
-            width: 200px; 
-            height: 200px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            margin: 15px auto; 
-            background: var(--card);
-            position: relative;
-            /* The base dark ring */
-            border: 10px solid #333; 
-            z-index: 1;
+            font-size: 6rem; font-weight: 800; border-radius: 50%; width: 200px; height: 200px; 
+            display: flex; align-items: center; justify-content: center; margin: 15px auto; 
+            background: var(--card); position: relative; border: 10px solid #333; z-index: 1;
         }
 
-        /* The Animated Ring */
         .timer-circle::before {
-            content: "";
-            position: absolute;
-            top: -10px; left: -10px; right: -10px; bottom: -10px;
-            border-radius: 50%;
-            /* Uses the --progress and --accent variables set in Javascript */
-            background: conic-gradient(var(--circle-color, #3498db) var(--progress, 0%), transparent 0);
-            z-index: -1;
+            content: ""; position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px;
+            border-radius: 50%; background: conic-gradient(var(--circle-color, #3498db) var(--progress, 0%), transparent 0); z-index: -1;
         }
 
         .next-up-text { color: #888; font-size: 0.85rem; margin-top: 5px; height: 1.2rem; font-weight: 600; }
-        .btn-group { display: flex; gap: 8px; justify-content: center; }
+        .btn-group { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
         button { padding: 12px 18px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
         .btn-start { background: var(--go); color: white; flex: 1; }
         .btn-start.running { background: var(--danger); }
         .btn-climb { background: #8e44ad; color: white; }
         .btn-climb.active { background: #ff00ff; box-shadow: 0 0 15px #ff00ff; }
+        .btn-audio { background: #555; color: white; width: 100%; margin-top: 10px; font-size: 0.8rem; }
         
         .rider-list { width: 420px; margin-top: 25px; }
         .rider-row { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 10px 15px; margin-bottom: 8px; border-radius: 12px; border-left: 6px solid #444; }
@@ -71,6 +54,7 @@
             <button class="btn-start" onclick="masterToggle()" id="start-btn">START LIVE</button>
             <button class="btn-climb" onclick="masterClimb()" id="climb-btn">CLIMB</button>
             <button onclick="masterReset()" style="background:#444; color:white;">RESET</button>
+            <button class="btn-audio" onclick="unlockAudio()">TAP TO UNMUTE / TEST AUDIO</button>
         </div>
         <div id="status" class="connection-status">Syncing...</div>
     </div>
@@ -106,7 +90,22 @@
         window.isRunning = false;
         window.isClimb = false;
         let interval;
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let audioCtx;
+
+        // NEW: CRITICAL AUDIO UNLOCK
+        window.unlockAudio = () => {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            // Test voice
+            speak("Audio enabled");
+            beep(440, 0.2);
+            document.querySelector('.btn-audio').innerText = "AUDIO UNLOCKED";
+            document.querySelector('.btn-audio').style.background = "#2ecc71";
+        };
 
         onValue(timerRef, (snapshot) => {
             const data = snapshot.val();
@@ -184,7 +183,7 @@
         }
 
         window.masterToggle = () => {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
+            unlockAudio(); // Unlock audio context on start button click as well
             window.isRunning = !window.isRunning;
             pushUpdate();
         };
@@ -198,22 +197,17 @@
         function syncVisuals() {
             const currentRider = window.riders[window.index];
             const totalPullTime = getAdjustedPull(currentRider);
-            
             document.getElementById('display-time').innerText = window.timeLeft;
             document.getElementById('current-name').innerText = currentRider ? currentRider.name : "DONE";
             document.getElementById('start-btn').innerText = window.isRunning ? "STOP LIVE" : "START LIVE";
             document.getElementById('start-btn').className = window.isRunning ? "btn-start running" : "btn-start";
             document.getElementById('climb-btn').classList.toggle('active', window.isClimb);
             
-            // PROGRESS CIRCLE LOGIC FIXED
             const progressPercent = (window.timeLeft / totalPullTime) * 100;
             const circle = document.getElementById('timer-display');
-            
-            let colorCode = '#3498db'; // Blue
-            if (window.timeLeft <= 4) colorCode = '#e74c3c'; // Red
-            else if (window.timeLeft <= 10) colorCode = '#f39c12'; // Orange
-            
-            // Force the CSS variables into the element
+            let colorCode = '#3498db';
+            if (window.timeLeft <= 4) colorCode = '#e74c3c';
+            else if (window.timeLeft <= 10) colorCode = '#f39c12';
             circle.style.setProperty('--progress', `${progressPercent}%`);
             circle.style.setProperty('--circle-color', colorCode);
 
@@ -250,7 +244,14 @@
             return window.isClimb ? Math.round(r.pull * 0.5) : r.pull; 
         }
         function getSpeakName(name) { return PHONETIC_NAMES[name] || name; }
-        function speak(text) { window.speechSynthesis.cancel(); const msg = new SpeechSynthesisUtterance(text); msg.rate = 1.1; window.speechSynthesis.speak(msg); }
+        function speak(text) { 
+            if(window.speechSynthesis) {
+                window.speechSynthesis.cancel(); 
+                const msg = new SpeechSynthesisUtterance(text); 
+                msg.rate = 1.1; 
+                window.speechSynthesis.speak(msg); 
+            }
+        }
         
         function checkAlerts() {
             if (window.timeLeft === 10) {
@@ -265,6 +266,7 @@
         }
 
         function beep(freq, duration) {
+            if(!audioCtx) return;
             const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
             osc.frequency.value = freq; gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
             osc.connect(gain); gain.connect(audioCtx.destination);
