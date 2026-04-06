@@ -11,7 +11,7 @@
         .main-timer { background: var(--card); padding: 30px; border-radius: 30px; width: 380px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.6); border: 1px solid #333; position: sticky; top: 10px; z-index: 100; }
         .current-name { font-size: 3rem; font-weight: 900; color: var(--accent); text-transform: uppercase; margin: 0; min-height: 4rem; }
         
-        /* NEW: Progress Circle Logic */
+        /* THE PROGRESS CIRCLE */
         .timer-circle { 
             font-size: 6rem; 
             font-weight: 800; 
@@ -24,18 +24,20 @@
             margin: 15px auto; 
             background: var(--card);
             position: relative;
-            /* This creates the ring effect */
+            /* The base dark ring */
             border: 10px solid #333; 
+            z-index: 1;
         }
 
+        /* The Animated Ring */
         .timer-circle::before {
             content: "";
             position: absolute;
             top: -10px; left: -10px; right: -10px; bottom: -10px;
             border-radius: 50%;
-            background: conic-gradient(var(--accent) var(--progress), transparent 0);
+            /* Uses the --progress and --accent variables set in Javascript */
+            background: conic-gradient(var(--circle-color, #3498db) var(--progress, 0%), transparent 0);
             z-index: -1;
-            transition: background 0.3s ease;
         }
 
         .next-up-text { color: #888; font-size: 0.85rem; margin-top: 5px; height: 1.2rem; font-weight: 600; }
@@ -197,25 +199,24 @@
             const currentRider = window.riders[window.index];
             const totalPullTime = getAdjustedPull(currentRider);
             
-            // UI Updates
             document.getElementById('display-time').innerText = window.timeLeft;
             document.getElementById('current-name').innerText = currentRider ? currentRider.name : "DONE";
             document.getElementById('start-btn').innerText = window.isRunning ? "STOP LIVE" : "START LIVE";
             document.getElementById('start-btn').className = window.isRunning ? "btn-start running" : "btn-start";
             document.getElementById('climb-btn').classList.toggle('active', window.isClimb);
             
-            // Progress Circle Logic
+            // PROGRESS CIRCLE LOGIC FIXED
             const progressPercent = (window.timeLeft / totalPullTime) * 100;
             const circle = document.getElementById('timer-display');
             
-            let color = 'var(--accent)';
-            if (window.timeLeft <= 4) color = 'var(--danger)';
-            else if (window.timeLeft <= 10) color = 'var(--warning)';
+            let colorCode = '#3498db'; // Blue
+            if (window.timeLeft <= 4) colorCode = '#e74c3c'; // Red
+            else if (window.timeLeft <= 10) colorCode = '#f39c12'; // Orange
             
+            // Force the CSS variables into the element
             circle.style.setProperty('--progress', `${progressPercent}%`);
-            circle.style.setProperty('--accent', color);
+            circle.style.setProperty('--circle-color', colorCode);
 
-            // Next Up List
             let nextText = "";
             if (window.riders.length > 1) {
                 let n1 = window.riders[(window.index + 1) % window.riders.length].name;
@@ -244,7 +245,10 @@
             document.getElementById('rider-list').innerHTML = html;
         }
 
-        function getAdjustedPull(r) { return window.isClimb ? Math.round(r.pull * 0.5) : r.pull; }
+        function getAdjustedPull(r) { 
+            if(!r) return 40;
+            return window.isClimb ? Math.round(r.pull * 0.5) : r.pull; 
+        }
         function getSpeakName(name) { return PHONETIC_NAMES[name] || name; }
         function speak(text) { window.speechSynthesis.cancel(); const msg = new SpeechSynthesisUtterance(text); msg.rate = 1.1; window.speechSynthesis.speak(msg); }
         
